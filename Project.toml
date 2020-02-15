@@ -1,0 +1,4 @@
+name = "Mastermind"
+uuid = "8ddcd3ef-e51b-4e92-a3b2-49e4383605e0"
+authors = ["Devin Jacobs <dbuttonz@gmail.com>"]
+version = "0.1.0"
