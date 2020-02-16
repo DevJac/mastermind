@@ -1,11 +1,12 @@
 module Mastermind
 
 export Correctness, correct, misplaced, wrong
-export correct_guess_ordered
+export correct_guess, correct_guess_ordered
 
 include("Bags.jl"); using .Bags
 
 using Random
+using StatsBase
 using Test: @test
 
 @enum Correctness correct misplaced wrong
@@ -58,8 +59,21 @@ function test_correct_guess_ordered()
     @test 10 <= matched <= 90
 end
 
+function correct_guess(secret, guess)
+    corrected_guess_ordered = correct_guess_ordered(secret, guess)
+    countmap([i[2] for i in corrected_guess_ordered])
+end
+
+function test_correct_guess()
+    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 4]) == Dict(correct => 4)
+    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 3]) == Dict(correct => 3, wrong => 1)
+    @test correct_guess([1, 2, 3, 4], [5, 5, 5, 5]) == Dict(wrong => 4)
+    @test correct_guess([1, 2, 2, 2], [3, 3, 1, 1]) == Dict(wrong => 3, misplaced => 1)
+end
+
 function test()
     test_correct_guess_ordered()
+    test_correct_guess()
 end
 
 test()
