@@ -2,6 +2,7 @@ module Bags
 
 export Bag
 export add!, remove!
+export sample_remove!
 
 import StatsBase: sample, Weights
 
@@ -31,7 +32,21 @@ end
 
 Base.in(i, bag::Bag) = i in keys(bag.contents)
 Base.:(==)(a::Bag, b::Bag) = a.contents == b.contents
-length(bag::Bag) = sum(values(bag.contents))
+Base.length(bag::Bag) = sum(values(bag.contents))
+Base.iterate(bag::Bag) = iterate(bag, 1)
+
+function Base.iterate(bag::Bag, state)
+    s = state
+    for (item, count) in bag.contents
+        if s <= count
+            @assert count > 0
+            return (item, state+1)
+        end
+        @assert count < s
+        s -= count
+    end
+    nothing
+end
 
 function add!(bag::Bag, item)
     if !haskey(bag.contents, item)
@@ -57,6 +72,11 @@ function test_bag()
     b = Bag([1, 2, 3])
     @test length(b) == 3
     @test (3 in b) == true
+    b = Bag([1, 2, 3, 3])
+    @test length(b) == 4
+    @test length(collect(b)) == 4
+    @test Set(collect(b)) == Set([1, 2, 3])
+    @test sort(collect(b)) == [1, 2, 3, 3]
 end
 
 function sample_remove!(bag::Bag, n)
