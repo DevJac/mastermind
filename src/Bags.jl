@@ -29,6 +29,7 @@ end
 Base.in(i, bag::Bag) = i in keys(bag.contents)
 Base.:(==)(a::Bag, b::Bag) = a.contents == b.contents
 Base.length(bag::Bag) = sum(values(bag.contents))
+Base.collect(bag::Bag{T}) where T = collect(T, bag)
 Base.iterate(bag::Bag) = iterate(bag, 1)
 
 function Base.iterate(bag::Bag, state)
@@ -73,6 +74,8 @@ function test_bag()
     @test length(collect(b)) == 4
     @test Set(collect(b)) == Set([1, 2, 3])
     @test sort(collect(b)) == [1, 2, 3, 3]
+    @test typeof(b) == Bag{Int}
+    @test typeof(collect(b)) == Vector{Int}
 end
 
 function sample_remove!(bag::Bag, n)
