@@ -11,19 +11,15 @@ using Test: @test
 
 mutable struct Bag{T}
     contents :: Dict{T, Int}
+
+    Bag{T}() where T = new{T}(Dict())
 end
 
 Bag() = Bag(Dict())
+Bag(iter) = Bag{eltype(iter)}(iter)
 
-Bag(T::DataType) = Bag{T}(Dict())
-
-function Bag(iter)
-    T = eltype(iter)
-    Bag(T, iter)
-end
-
-function Bag(T, iter)
-    new_bag = Bag(T)
+function Bag{T}(iter) where T
+    new_bag = Bag{T}()
     for item in iter
         add!(new_bag, item)
     end
