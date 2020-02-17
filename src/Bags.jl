@@ -33,18 +33,22 @@ Base.length(bag::Bag) = sum(values(bag.contents))
 Base.collect(bag::Bag{T}) where T = collect(T, bag)
 Base.eltype(bag::Bag{T}) where T = T
 Base.iterate(bag::Bag) = iterate(bag, 1)
+Base.iterate(bag::Bag, i) = i > length(bag) ? nothing : (bag[i], i+1)
 
-function Base.iterate(bag::Bag, state)
-    s = state
-    for (item, count) in bag.contents
-        if s <= count
-            @assert count > 0
-            return (item, state+1)
-        end
-        @assert count < s
-        s -= count
+function Base.getindex(bag::Bag, index)
+    if index < 1
+        throw(BoundsError(bag, index))
     end
-    nothing
+    i = index
+    for (item, count) in bag.contents
+        if i <= count
+            @assert count > 0
+            return item
+        end
+        @assert count < i
+        i -= count
+    end
+    throw(BoundsError(bag, index))
 end
 
 function Base.filter(f, bag::Bag{T}) where T
@@ -110,14 +114,14 @@ function test_sample_remove()
     @test length(b) == 0
     @test b == Bag()
     @test Set(s) == Set([1, 2, 3])
+    b = Bag([1, 1, 1])
+    s = sample_remove!(b, 3)
+    @test s == [1, 1, 1]
 end
 
 function sample(bag::Bag, n; replace=true)
-    sample(
-        collect(keys(bag.contents)),
-        Weights(collect(values(bag.contents))),
-        n;
-        replace=replace)
+    sampled_indices = sample(1:length(bag), n; replace=replace)
+    [bag[i] for i in sampled_indices]
 end
 
 function test()
