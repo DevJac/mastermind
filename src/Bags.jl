@@ -16,7 +16,7 @@ mutable struct Bag{T}
     Bag{T}() where T = new{T}(Dict())
 end
 
-Bag() = Bag(Dict())
+Bag() = Bag{Any}(Dict())
 Bag(iter) = Bag{eltype(iter)}(iter)
 
 function Bag{T}(iter) where T
@@ -76,6 +76,7 @@ end
 
 function test_bag()
     b = Bag()
+    @test eltype(b) == Any
     @test length(b) == 0
     @test (3 in b) == false
     b = Bag([1, 2, 3])
