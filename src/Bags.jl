@@ -12,6 +12,7 @@ using Test: @test
 mutable struct Bag{T}
     contents :: Dict{T, Int}
 
+    Bag{T}(_::UndefInitializer) where T = new{T}()
     Bag{T}() where T = new{T}(Dict())
 end
 
@@ -46,6 +47,16 @@ function Base.iterate(bag::Bag, state)
     nothing
 end
 
+function Base.filter(f, bag::Bag{T}) where T
+    filtered_bag = Bag{T}(undef)
+    filtered_bag.contents = filter(pair -> f(pair.first), bag.contents)
+    filtered_bag
+end
+
+function Base.filter!(f, bag::Bag)
+    filter!(pair -> f(pair.first), bag.contents)
+end
+
 function add!(bag::Bag, item)
     if !haskey(bag.contents, item)
         bag.contents[item] = 0
@@ -78,6 +89,9 @@ function test_bag()
     @test typeof(b) == Bag{Int}
     @test typeof(collect(b)) == Vector{Int}
     @test eltype(b) == Int
+    @test filter(isodd, b) == Bag([1, 3, 3])
+    filter!(isodd, b)
+    @test b == Bag([1, 3, 3])
 end
 
 function sample_remove!(bag::Bag, n)
