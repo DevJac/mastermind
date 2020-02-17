@@ -1,10 +1,11 @@
 module Mastermind
 
 export Correctness, correct, misplaced, wrong
-export correct_guess, correct_guess_ordered
+export print_puzzle, correct_guess, correct_guess_ordered
 
 include("Bags.jl"); using .Bags
 
+using Printf
 using Random
 using StatsBase
 using Test: @test
@@ -69,6 +70,30 @@ function test_correct_guess()
     @test correct_guess([1, 2, 3, 4], [1, 2, 3, 3]) == Dict(correct => 3, wrong => 1)
     @test correct_guess([1, 2, 3, 4], [5, 5, 5, 5]) == Dict(wrong => 4)
     @test correct_guess([1, 2, 2, 2], [3, 3, 1, 1]) == Dict(wrong => 3, misplaced => 1)
+end
+
+function print_puzzle()
+    marbles = Bag{Int}(c for c=1:6, _=1:20)
+    secret = sample_remove!(marbles, 4)
+    possible_secrets = Set(Iterators.product(Iterators.repeated(1:6, 4)...))
+    print(secret)
+    print("\n"^40)
+    while length(marbles) >= 4
+        guess = sample_remove!(marbles, 4)
+        corrected = correct_guess(secret, guess)
+        for possible_secret in possible_secrets
+            if correct_guess(possible_secret, guess) != corrected
+                pop!(possible_secrets, possible_secret)
+            end
+        end
+        print(guess)
+        print((get(corrected, correct, 0), get(corrected, misplaced, 0), get(corrected, wrong, 0)))
+        @printf("%7d\n", length(possible_secrets))
+        if length(possible_secrets) <= 1
+            @assert collect(first(possible_secrets)) == secret
+            break
+        end
+    end
 end
 
 function test()
