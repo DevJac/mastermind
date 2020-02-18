@@ -1,7 +1,7 @@
 module Mastermind
 
 export Correctness, correct, misplaced, wrong
-export print_puzzle, correct_guess, correct_guess_ordered
+export guess_my_code, print_puzzle, correct_guess, correct_guess_ordered
 
 include("Bags.jl"); using .Bags
 
@@ -62,14 +62,15 @@ end
 
 function correct_guess(secret, guess)
     corrected_guess_ordered = correct_guess_ordered(secret, guess)
-    countmap([i[2] for i in corrected_guess_ordered])
+    corrected = countmap([i[2] for i in corrected_guess_ordered])
+    [get(corrected, correct, 0), get(corrected, misplaced, 0), get(corrected, wrong, 0)]
 end
 
 function test_correct_guess()
-    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 4]) == Dict(correct => 4)
-    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 3]) == Dict(correct => 3, wrong => 1)
-    @test correct_guess([1, 2, 3, 4], [5, 5, 5, 5]) == Dict(wrong => 4)
-    @test correct_guess([1, 2, 2, 2], [3, 3, 1, 1]) == Dict(wrong => 3, misplaced => 1)
+    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 4]) == [4, 0, 0]
+    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 3]) == [3, 0, 1]
+    @test correct_guess([1, 2, 3, 4], [5, 5, 5, 5]) == [0, 0, 4]
+    @test correct_guess([1, 2, 2, 2], [3, 3, 1, 1]) == [0, 1, 3]
 end
 
 function print_puzzle()
@@ -86,12 +87,38 @@ function print_puzzle()
                 pop!(possible_secrets, possible_secret)
             end
         end
-        print(guess)
-        print((get(corrected, correct, 0), get(corrected, misplaced, 0), get(corrected, wrong, 0)))
-        @printf("%7d\n", length(possible_secrets))
+        @printf("%s %s %6d\n", guess, corrected, length(possible_secrets))
         if length(possible_secrets) <= 1
             @assert collect(first(possible_secrets)) == secret
             break
+        end
+    end
+end
+
+const possible_corrections = collect(
+    Iterators.filter(x -> sum(x) == 4, Iterators.product(Iterators.repeated(0:4, 3)...)))
+
+function guess_my_code()
+    possible_secrets = Set(Iterators.product(Iterators.repeated(1:6, 4)...))
+    while true
+        @printf("Your code must be 1 of %d possible codes.\n", length(possible_secrets))
+        if length(possible_secrets) <= 1
+            if length(possible_secrets) == 1
+                @printf("Your code is: %s\n", first(possible_secrets))
+            else
+                println("You have given me inconsistent corrections.")
+            end
+            break
+        end
+        guess = [rand(1:6) for _ in 1:4]
+        @printf("My guess is: %s\n", guess)
+        print("Correct my guess: ")
+        corrected = map(s -> parse(Int, s), split(readline()))
+        @assert sum(corrected) == 4
+        for possible_secret in possible_secrets
+            if correct_guess(possible_secret, guess) != corrected
+                pop!(possible_secrets, possible_secret)
+            end
         end
     end
 end
