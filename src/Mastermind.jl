@@ -63,14 +63,14 @@ end
 function correct_guess(secret, guess)
     corrected_guess_ordered = correct_guess_ordered(secret, guess)
     corrected = countmap([i[2] for i in corrected_guess_ordered])
-    [get(corrected, correct, 0), get(corrected, misplaced, 0), get(corrected, wrong, 0)]
+    (get(corrected, correct, 0), get(corrected, misplaced, 0), get(corrected, wrong, 0))
 end
 
 function test_correct_guess()
-    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 4]) == [4, 0, 0]
-    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 3]) == [3, 0, 1]
-    @test correct_guess([1, 2, 3, 4], [5, 5, 5, 5]) == [0, 0, 4]
-    @test correct_guess([1, 2, 2, 2], [3, 3, 1, 1]) == [0, 1, 3]
+    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 4]) == (4, 0, 0)
+    @test correct_guess([1, 2, 3, 4], [1, 2, 3, 3]) == (3, 0, 1)
+    @test correct_guess([1, 2, 3, 4], [5, 5, 5, 5]) == (0, 0, 4)
+    @test correct_guess([1, 2, 2, 2], [3, 3, 1, 1]) == (0, 1, 3)
 end
 
 function print_puzzle()
@@ -98,28 +98,55 @@ end
 const possible_corrections = collect(
     Iterators.filter(x -> sum(x) == 4, Iterators.product(Iterators.repeated(0:4, 3)...)))
 
+function score_guess(guess, possible_secrets)
+    some_secrets = length(possible_secrets) > 100 ? rand(possible_secrets, 100) : possible_secrets
+    min_elimed = -1
+    for correction in possible_corrections
+        # We assume correct_guess(actual_secret, guess) == correction.
+        # We will count how many possible_secrets are eliminated by this correction.
+        elimed = 0
+        for possible_secret in some_secrets
+            if correct_guess(possible_secret, guess) != correction
+                # We assume correct_guess(actual_secret, guess) == correction,
+                # so the fact that correct_guess(possible_secret, guess) != correction
+                # means that possible_secret is not the secret code.
+                # Thus, we have eliminated one possible_secret.
+                elimed += 1
+            end
+        end
+        if min_elimed == -1 || elimed < min_elimed
+            min_elimed = elimed
+        end
+    end
+    min_elimed
+end
+
 function guess_my_code()
-    possible_secrets = Set(Iterators.product(Iterators.repeated(1:6, 4)...))
+    possible_guesses = collect(Iterators.product(Iterators.repeated(1:6, 4)...))
+    possible_secrets = Set(possible_guesses)
+    guesses_taken = 0
     while true
         @printf("Your code must be 1 of %d possible codes.\n", length(possible_secrets))
         if length(possible_secrets) <= 1
             if length(possible_secrets) == 1
                 @printf("Your code is: %s\n", first(possible_secrets))
+                @printf("I identified your code in %d guesses.", guesses_taken)
             else
                 println("You have given me inconsistent corrections.")
             end
             break
         end
-        guess = [rand(1:6) for _ in 1:4]
+        guess = possible_guesses[argmax(map(g -> score_guess(g, possible_secrets), possible_guesses))]
         @printf("My guess is: %s\n", guess)
         print("Correct my guess: ")
-        corrected = map(s -> parse(Int, s), split(readline()))
+        corrected = tuple(map(s -> parse(Int, s), split(readline()))...)
         @assert sum(corrected) == 4
         for possible_secret in possible_secrets
             if correct_guess(possible_secret, guess) != corrected
                 pop!(possible_secrets, possible_secret)
             end
         end
+        guesses_taken += 1
     end
 end
 
